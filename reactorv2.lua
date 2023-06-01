@@ -248,6 +248,7 @@ function stopReactor()
   while true do
   if(status()~="stopping") then
     fieldThread:kill()
+    setIn(0)
     break
   end
   os.sleep(0)
