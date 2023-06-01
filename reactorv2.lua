@@ -3,12 +3,12 @@ thread = require("thread")
 event = require("event")
 term = require("term")
 curIn,curOut=0,0
-setfield=0.05
-setTemp=8000.4
-fieldCoe={0.08,0.04,0.12}
-tempCoe={0.1,0.145,0.1}
-energyCoe={0.1,0.14,0.1}
-intgTime=10
+setfield=0.0550
+setTemp=8000.47
+fieldCoe={0.09,0.09,0.04}
+tempCoe={0.033,0.053,0.11}
+energyCoe={0.032,0.052,0.12}
+intgTime=15
 avgOut=0
 fieldDeltaList={}
 tempDeltaList={}
@@ -96,25 +96,28 @@ function len(tb)
     return length
 end
 function field_main()
-    local it,eP,eI,eD,eT,fieldDelta=0,0.0,0.0,0.0,0.0,0.0
+    local it,ind,eP,eI,eD,eT,fieldDelta=0,1,0.0,0.0,0.0,0.0,0.0
     while true
     do
         fieldDelta=maxField()*setfield-Field()
         eP=fieldDelta*fieldCoe[1]
         if eP+FieldDrain()>=0 
         then
-            table.insert(fieldDeltaList,fieldDelta)
+            fieldDeltaList[ind]=fieldDelta
             if it>=3
             then
                 eI=sum(fieldDeltaList)*fieldCoe[2]
-                eD=(fieldDelta-fieldDeltaList[len(fieldDeltaList)-1])*fieldCoe[3]
+                qu=ind-1
+                if qu==0 then
+                    qu=intgTime
+                end
+                eD=(fieldDelta-fieldDeltaList[qu])*fieldCoe[3]
             end
-            if it<=intgTime
+            if ind<=intgTime
             then
-                it=it+1
+                ind=ind+1
             else
-                it=0
-                fieldDeltaList={}
+                ind=1
             end
         end
         eT=eP+eI+eD
@@ -124,45 +127,51 @@ function field_main()
 end
 
 function temp_main()
-    local it1,it2,eP1,eI1,eD1,eT1,eP2,eI2,eD2,eT2,tgtE,tDelta,eDelta=0,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+    local it1,ind1,it2,ind2,eP1,eI1,eD1,eT1,eP2,eI2,eD2,eT2,tDelta,eDelta=0,1,0,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
     while true
     do
         tDelta=setTemp-Temp()
         eP1=tDelta*tempCoe[1]
-        table.insert(tempDeltaList,tDelta)
+        tempDeltaList[ind1]=tDelta
         if it1>=3
         then
             eI1=sum(tempDeltaList)*tempCoe[2]
-            eD1=(tDelta-tempDeltaList[len(tempDeltaList)-1])*tempCoe[3]
+            qu1=ind1-1
+            if qu1==0 then
+                qu1=intgTime
+            end
+            eD1=(tDelta-tempDeltaList[qu1])*tempCoe[3]
         else
             it1=it1+1
         end
-        if it1<=intgTime
+        if ind1<=intgTime
         then
-            it1=it1+1
+            ind1=ind1+1
         else
-            it1=0
-            tempDeltaList={}
+            ind1=1
         end
         eT1=eP1+eI1+eD1
         eDelta=eT1*100
         eP2=eDelta*energyCoe[1]
         if eP2+eV()>=0
         then
-            table.insert(energyDeltaList,eDelta)
+            energyDeltaList[ind2]=eDelta
             if it2>=3
             then
                 eI2=sum(energyDeltaList)*energyCoe[2]
-                eD2=(eDelta-energyDeltaList[len(energyDeltaList)-1])*energyCoe[3]
+                qu2=ind2-1
+                if qu2==0 then
+                    qu2=intgTime
+                end
+                eD2=(eDelta-energyDeltaList[qu2])*energyCoe[3]
             else
                 it2=it2+1
             end
-            if it2<=intgTime
+            if ind2<=intgTime
             then
-                it2=it2+1
+                ind2=ind2+1
             else
-                it2=0
-                energyDeltaList={}
+                ind2=1
             end
         end
         eT2=eP2+eI2+eD2
@@ -194,6 +203,13 @@ function drawFrame()
   term.clear()
   gpu.setResolution(40,12.5)
   term.setCursorBlink(false)
+  if overClock then
+      gpu.setBackground(0xFFFF39)
+      gpu.setForeground(0xFF3939)
+      term.setCursor(1,1)
+      term.write("OVERCLOCKED")
+  end
+  gpu.setForeground(0xFFFFFF)  
   gpu.setBackground(0x393939)
   term.setCursor(15,1)
   term.write("ReactorInfo")
@@ -248,7 +264,6 @@ function stopReactor()
   while true do
   if(status()~="stopping") then
     fieldThread:kill()
-    setIn(0)
     break
   end
   os.sleep(0)
@@ -289,6 +304,7 @@ touchDriver = thread.create(
     end
   end
 )
+if overClock==false or overClock==nil then
 emergency_supervise = thread.create(
     function()
         while true do
@@ -304,3 +320,4 @@ emergency_supervise = thread.create(
         end     
     end
 )
+end
