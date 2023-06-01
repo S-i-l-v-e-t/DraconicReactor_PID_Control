@@ -15,3 +15,8 @@
 - Although the program ***Has*** an auto emergency stop to prevent some accident happening
 - If your argument is ***Really*** go beyond what is proper,the program will unable to react that fast to stop reactor and it will BOOM!
 - **So If You Don't Know What You're Doing, Don't Touch Anything**
+### Q:Can I Bypass The Auto Emergency Stop?
+- Yes.
+- However testing new arguments without AES's protect can easily make your reactor a huge firework
+- To disable AES, add `overClock=true` to the top of program
+- When you start program with that,screen will warn you the AES was disabled 
