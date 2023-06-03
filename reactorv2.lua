@@ -2,14 +2,17 @@ component = require("component")
 thread = require("thread")
 event = require("event")
 term = require("term")
+computer=require("computer")
 curIn,curOut=0,0
 setfield=0.0550
 setTemp=8000.47
+autoStop=0.1
 fieldCoe={0.09,0.09,0.04}
 tempCoe={0.033,0.053,0.11}
 energyCoe={0.032,0.052,0.12}
 intgTime=15
 avgOut=0
+autoStopFlag=false
 fieldDeltaList={}
 tempDeltaList={}
 energyDeltaList={}
@@ -245,6 +248,9 @@ function termWrite(x,y,string)
 end
          
 function startReactor()
+  if autoStopFlag then
+    BEEP:kill()
+  end
   initialize()
   fieldThread = thread.create(
     function()
@@ -256,10 +262,42 @@ function startReactor()
       temp_main()
     end
 )
+if autoStop~=false then
+    autoStop_supervise = thread.create(
+        function()
+            if autoStop<1 then
+                while true do
+                    if 1-FuelRate()<=autoStop then
+                        stopReactor()
+                        autoStopFlag=true
+                        break
+                    end
+                    os.sleep(0)
+                end
+            else
+                while true do
+                    if avgOut<=autoStop*1000 then
+                        os.sleep(10)
+                        if avgOut<=autoStop*1000 then
+                            stopReactor()
+                            autoStopFlag=true
+                            break
+                        end
+                    end
+                    os.sleep(0)
+                end
+            end
+            while true do
+                os.sleep(0)
+            end
+        end
+    )
+end
 end    
 function stopReactor()
   avgOut = 0
   reactorThread:kill()
+  autoStop_supervise:kill()
   reactor.stopReactor()
   while true do
   if(status()~="stopping") then
@@ -267,6 +305,14 @@ function stopReactor()
     break
   end
   os.sleep(0)
+  end
+  if autoStopFlag then
+    BEEP=thread.create(
+      function()
+        computer.beep(98,0.1)
+        os.sleep(2)
+      end
+    )
   end
 end
 drawFrame()
