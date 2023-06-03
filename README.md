@@ -5,11 +5,12 @@
 - Ctrl+W quit edit mode and run `reactorv2` to start program, the program will automaticly initialize the reactor
 ### Q:Can I Configure the Arguments of PID?
 - Yes.
-- To do this, enter edit mode and you can see the variables `setTemp` `setfield` `fieldCoe` `tempCoe` `energyCoe` `intgTime`
+- To do this, enter edit mode and you can see the variables `setTemp` `setfield` `fieldCoe` `tempCoe` `energyCoe` `intgTime` `autoStop`
 - `setTemp` : target temperature (in °C)
 - `setfield` : target field (in %,which mean value range is between 0 and 1)
 - `*Coe` : PID arguments (Kp Ki Kd in order)
 - `intgTime` : integration time (in cycle times)
+- `autoStop` : `false` for disable function;if the value below 1,the reactor will stop at remaining fuel below (value\*100%);otherwise the reactor will stop when net output below (value\*1000) RF/t
 ### Q:Do the Program Blow up My Reactor?
 - Maybe.
 - Although the program ***Has*** an auto emergency stop to prevent some accident happening
@@ -20,3 +21,5 @@
 - However testing new arguments without AES's protect can easily make your reactor a huge firework
 - To disable AES, add `overClock=true` to the top of program
 - When you start program with that,screen will warn you the AES was disabled 
+### Q:How to mute the beeping warning when auto stop?
+- Refill and restart your reactor and it will disappear 
