@@ -1,8 +1,5 @@
-component = require("component")
-thread = require("thread")
-event = require("event")
-term = require("term")
-curIn,curOut=0,0
+--Config:
+autoStop=0.1
 setfield=0.05
 setTemp=8000.4
 fieldCoe={0.08,0.03,0.09}
@@ -10,14 +7,23 @@ tempCoe={0.05,0.09,0.1}
 energyCoe={0.045,0.11,0.1}
 intgTime=15
 avgOut=0
+reactor = component.proxy(component.get(""))
+outGate = component.proxy(component.get(""))
+inGate = component.proxy(component.get(""))
+Monitor=""
+gpuaddr=""
+
+--Script:
+component = require("component")
+thread = require("thread")
+event = require("event")
+term = require("term")
+computer=require("computer")
+curIn,curOut=0,0
+autoStopFlag=false
 fieldDeltaList={}
 tempDeltaList={}
 energyDeltaList={}
-reactor = component.proxy(component.get("d35f832a-8b73-4c50-b996-e79fc76cac70"))
-outGate = component.proxy(component.get("9a0c929b-e3e4-4e5b-9c77-a28681347305"))
-inGate = component.proxy(component.get("9d6438bc-8a2f-4780-b4cc-6260585af537"))
-Monitor="d5d4584e-6017-42fa-a900-f6a13a311aae"
-gpuaddr="120"
 gpu = component.proxy(component.get(gpuaddr))
 gpu.bind(Monitor)
 gpu.setResolution(40,12.5)

@@ -1,4 +1,7 @@
 # Draconic Reactor PID Control FAQ  
+  
+***YOU ARE IN A TEST BRANCH, THE ARGUMENTS/CODES AREN'T STABLE AT ALL***  
+  
 ### Q:How to Use?  
 - Download reactorv2.lua and put it on your OC computer which already connected to screen,GPU,2xFlux Gate and a reactor  
 - Enter `edit reactorv2.lua` and make sure the component addresses are correct
