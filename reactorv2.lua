@@ -1,17 +1,17 @@
 --Config:
-setfield=0.0550
-setTemp=8000.47
 autoStop=0.1
-fieldCoe={0.09,0.09,0.04}
-tempCoe={0.033,0.053,0.11}
-energyCoe={0.032,0.052,0.12}
+setfield=0.05
+setTemp=8000.4
+fieldCoe={0.08,0.03,0.09}
+tempCoe={0.05,0.09,0.1}
+energyCoe={0.045,0.11,0.1}
 intgTime=15
 avgOut=0
-reactor = component.proxy(component.get("d35f832a-8b73-4c50-b996-e79fc76cac70"))
-outGate = component.proxy(component.get("9a0c929b-e3e4-4e5b-9c77-a28681347305"))
-inGate = component.proxy(component.get("9d6438bc-8a2f-4780-b4cc-6260585af537"))
-Monitor="d5d4584e-6017-42fa-a900-f6a13a311aae"
-gpuaddr="120"
+reactor = component.proxy(component.get(""))
+outGate = component.proxy(component.get(""))
+inGate = component.proxy(component.get(""))
+Monitor=""
+gpuaddr=""
 
 --Script:
 component = require("component")
@@ -102,28 +102,25 @@ function len(tb)
     return length
 end
 function field_main()
-    local it,ind,eP,eI,eD,eT,fieldDelta=0,1,0.0,0.0,0.0,0.0,0.0
+    local it,eP,eI,eD,eT,fieldDelta=0,0.0,0.0,0.0,0.0,0.0
     while true
     do
         fieldDelta=maxField()*setfield-Field()
         eP=fieldDelta*fieldCoe[1]
         if eP+FieldDrain()>=0 
         then
-            fieldDeltaList[ind]=fieldDelta
+            table.insert(fieldDeltaList,fieldDelta)
             if it>=3
             then
                 eI=sum(fieldDeltaList)*fieldCoe[2]
-                qu=ind-1
-                if qu==0 then
-                    qu=intgTime
-                end
-                eD=(fieldDelta-fieldDeltaList[qu])*fieldCoe[3]
+                eD=(fieldDelta-fieldDeltaList[len(fieldDeltaList)-1])*fieldCoe[3]
             end
-            if ind<=intgTime
+            if it<=intgTime
             then
-                ind=ind+1
+                it=it+1
             else
-                ind=1
+                it=0
+                fieldDeltaList={}
             end
         end
         eT=eP+eI+eD
@@ -133,51 +130,45 @@ function field_main()
 end
 
 function temp_main()
-    local it1,ind1,it2,ind2,eP1,eI1,eD1,eT1,eP2,eI2,eD2,eT2,tDelta,eDelta=0,1,0,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+    local it1,it2,eP1,eI1,eD1,eT1,eP2,eI2,eD2,eT2,tgtE,tDelta,eDelta=0,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
     while true
     do
         tDelta=setTemp-Temp()
         eP1=tDelta*tempCoe[1]
-        tempDeltaList[ind1]=tDelta
+        table.insert(tempDeltaList,tDelta)
         if it1>=3
         then
             eI1=sum(tempDeltaList)*tempCoe[2]
-            qu1=ind1-1
-            if qu1==0 then
-                qu1=intgTime
-            end
-            eD1=(tDelta-tempDeltaList[qu1])*tempCoe[3]
+            eD1=(tDelta-tempDeltaList[len(tempDeltaList)-1])*tempCoe[3]
         else
             it1=it1+1
         end
-        if ind1<=intgTime
+        if it1<=intgTime
         then
-            ind1=ind1+1
+            it1=it1+1
         else
-            ind1=1
+            it1=0
+            tempDeltaList={}
         end
         eT1=eP1+eI1+eD1
         eDelta=eT1*100
         eP2=eDelta*energyCoe[1]
         if eP2+eV()>=0
         then
-            energyDeltaList[ind2]=eDelta
+            table.insert(energyDeltaList,eDelta)
             if it2>=3
             then
                 eI2=sum(energyDeltaList)*energyCoe[2]
-                qu2=ind2-1
-                if qu2==0 then
-                    qu2=intgTime
-                end
-                eD2=(eDelta-energyDeltaList[qu2])*energyCoe[3]
+                eD2=(eDelta-energyDeltaList[len(energyDeltaList)-1])*energyCoe[3]
             else
                 it2=it2+1
             end
-            if ind2<=intgTime
+            if it2<=intgTime
             then
-                ind2=ind2+1
+                it2=it2+1
             else
-                ind2=1
+                it2=0
+                energyDeltaList={}
             end
         end
         eT2=eP2+eI2+eD2
@@ -209,13 +200,6 @@ function drawFrame()
   term.clear()
   gpu.setResolution(40,12.5)
   term.setCursorBlink(false)
-  if overClock then
-      gpu.setBackground(0xFFFF39)
-      gpu.setForeground(0xFF3939)
-      term.setCursor(1,1)
-      term.write("OVERCLOCKED")
-  end
-  gpu.setForeground(0xFFFFFF)  
   gpu.setBackground(0x393939)
   term.setCursor(15,1)
   term.write("ReactorInfo")
@@ -251,9 +235,6 @@ function termWrite(x,y,string)
 end
          
 function startReactor()
-  if autoStopFlag then
-    BEEP:kill()
-  end
   initialize()
   fieldThread = thread.create(
     function()
@@ -265,42 +246,10 @@ function startReactor()
       temp_main()
     end
 )
-if autoStop~=false then
-    autoStop_supervise = thread.create(
-        function()
-            if autoStop<1 then
-                while true do
-                    if 1-FuelRate()<=autoStop then
-                        stopReactor()
-                        autoStopFlag=true
-                        break
-                    end
-                    os.sleep(0)
-                end
-            else
-                while true do
-                    if avgOut<=autoStop*1000 then
-                        os.sleep(10)
-                        if avgOut<=autoStop*1000 then
-                            stopReactor()
-                            autoStopFlag=true
-                            break
-                        end
-                    end
-                    os.sleep(0)
-                end
-            end
-            while true do
-                os.sleep(0)
-            end
-        end
-    )
-end
 end    
 function stopReactor()
   avgOut = 0
   reactorThread:kill()
-  autoStop_supervise:kill()
   reactor.stopReactor()
   while true do
   if(status()~="stopping") then
@@ -308,14 +257,6 @@ function stopReactor()
     break
   end
   os.sleep(0)
-  end
-  if autoStopFlag then
-    BEEP=thread.create(
-      function()
-        computer.beep(98,0.1)
-        os.sleep(2)
-      end
-    )
   end
 end
 drawFrame()
@@ -353,7 +294,6 @@ touchDriver = thread.create(
     end
   end
 )
-if overClock==false or overClock==nil then
 emergency_supervise = thread.create(
     function()
         while true do
@@ -369,4 +309,3 @@ emergency_supervise = thread.create(
         end     
     end
 )
-end
